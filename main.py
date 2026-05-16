@@ -44,12 +44,13 @@ def process_video():
 
         result = subprocess.run(cmd, capture_output=True, text=True)
 
-        if result.returncode != 0:
-            return jsonify({
-                "error": "ffmpeg failed",
-                "cmd": " ".join(cmd),
-                "details": result.stderr[-4000:]
-            }), 500
+if result.returncode != 0:
+    return jsonify({
+        "ok": False,
+        "error": "ffmpeg failed",
+        "cmd": " ".join(cmd),
+        "details": result.stderr[-4000:]
+    }), 200
         return send_file(output_path, mimetype="video/mp4", as_attachment=True, download_name="processed.mp4")
 
     except Exception as e:
