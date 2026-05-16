@@ -29,12 +29,18 @@ def process_video():
             f.write(r.content)
 
         cmd = [
-            "ffmpeg", "-y",
-            "-i", input_path,
-            "-filter_complex", ffmpeg_filter,
-            "-c:a", "copy",
-            output_path
-        ]
+    "ffmpeg", "-y",
+    "-i", input_path,
+    "-filter_complex", ffmpeg_filter,
+    "-map", "[vout]",
+    "-map", "0:a?",
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-crf", "23",
+    "-c:a", "aac",
+    "-shortest",
+    output_path
+]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
 
