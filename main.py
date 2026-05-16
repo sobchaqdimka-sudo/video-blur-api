@@ -31,7 +31,7 @@ def process_video():
         cmd = [
             "ffmpeg", "-y",
             "-i", input_path,
-            "-vf", ffmpeg_filter,
+            "-filter_complex", ffmpeg_filter,
             "-c:a", "copy",
             output_path
         ]
