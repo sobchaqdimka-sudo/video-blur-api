@@ -1,5 +1,8 @@
 from flask import Flask, request, send_file, jsonify
-import subprocess, requests, uuid, os
+import subprocess
+import requests
+import uuid
+import os
 
 app = Flask(__name__)
 
@@ -15,46 +18,74 @@ def process_video():
     ffmpeg_filter = data.get("filter")
 
     if not video_url or not ffmpeg_filter:
-        return jsonify({"error": "video_url and filter are required"}), 400
+        return jsonify({
+            "error": "video_url and filter are required"
+        }), 400
 
     job_id = str(uuid.uuid4())
+
     input_path = f"/tmp/{job_id}_input.mp4"
     output_path = f"/tmp/{job_id}_output.mp4"
 
     try:
+        # download video
         r = requests.get(video_url, timeout=180)
         r.raise_for_status()
 
         with open(input_path, "wb") as f:
             f.write(r.content)
 
+        # ffmpeg
         cmd = [
-    "ffmpeg", "-y",
-    "-i", input_path,
-    "-filter_complex", ffmpeg_filter,
-    "-map", "[vout]",
-    "-map", "0:a?",
-    "-c:v", "libx264",
-    "-preset", "veryfast",
-    "-crf", "23",
-    "-c:a", "aac",
-    "-shortest",
-    output_path
-]
+            "ffmpeg",
+            "-y",
+            "-i", input_path,
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+            "-filter_complex",
+            ffmpeg_filter,
 
-if result.returncode != 0:
-    return jsonify({
-        "ok": False,
-        "error": "ffmpeg failed",
-        "cmd": " ".join(cmd),
-        "details": result.stderr[-4000:]
-    }), 200
-        return send_file(output_path, mimetype="video/mp4", as_attachment=True, download_name="processed.mp4")
+            "-map", "[vout]",
+            "-map", "0:a?",
+
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "23",
+
+            "-c:a", "aac",
+
+            "-movflags", "+faststart",
+
+            output_path
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True
+        )
+
+        # ffmpeg error
+        if result.returncode != 0:
+            return jsonify({
+                "ok": False,
+                "error": "ffmpeg failed",
+                "cmd": " ".join(cmd),
+                "details": result.stderr[-4000:]
+            }), 200
+
+        # success
+        return send_file(
+            output_path,
+            mimetype="video/mp4",
+            as_attachment=True,
+            download_name="processed.mp4"
+        )
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
